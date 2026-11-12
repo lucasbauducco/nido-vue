@@ -1,0 +1,49 @@
+/* Nido: variables de diseno. Paleta del hornero y la pampa, con modo oscuro. */
+:root {
+  --bg: #F6F5F2;
+  --surface: #FFFFFF;
+  --surface-2: #F2F0EC;
+  --ink: #241C17;
+  --muted: #6B625B;
+  --line: #E3DFD9;
+  --accent: #C4501B;
+  --accent-ink: #FFFFFF;
+  --tint: #FBE9DF;
+  --pampa: #3F7D5A;
+  --cielo: #3C7EA6;
+
+  --font-display: 'Montserrat', 'Segoe UI', sans-serif;
+  --font-body: 'Alegreya Sans', 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151210;
+    --surface: #1F1B18;
+    --surface-2: #2A2521;
+    --ink: #F3EEE8;
+    --muted: #A69C93;
+    --line: #332D28;
+    --accent: #F08A55;
+    --accent-ink: #1A0F08;
+    --tint: #3A2418;
+    --pampa: #6DBF92;
+    --cielo: #7DB8DB;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #151210;
+  --surface: #1F1B18;
+  --surface-2: #2A2521;
+  --ink: #F3EEE8;
+  --muted: #A69C93;
+  --line: #332D28;
+  --accent: #F08A55;
+  --accent-ink: #1A0F08;
+  --tint: #3A2418;
+  --pampa: #6DBF92;
+  --cielo: #7DB8DB;
+  color-scheme: dark;
+}

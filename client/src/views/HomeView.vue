@@ -75,7 +75,7 @@ export default {
 
 <style lang="stylus" scoped>
     main
-      background  #EEEEEE
+      background var(--bg)
       padding-top 100px
       min-height 100vh
       h1 

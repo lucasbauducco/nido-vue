@@ -149,7 +149,8 @@ export default {
         justify-content center
         align-items center
         div.modal 
-            background white
+            background var(--surface)
+            color var(--ink)
             width 80%
             height 80%
             border-radius 18px
@@ -174,13 +175,13 @@ export default {
                     align-items center
                     padding 10px 20px
                     flex 75px 0 0
-                    border-bottom 1px solid #DFDFDF
+                    border-bottom 1px solid var(--line)
                     .close
                         font-size 32px
                     .separator
                         margin 0 10px
                     .author
-                        color black
+                        color var(--ink)
                 div.title
                     flex 75px 0 0
                     h1 
@@ -200,7 +201,7 @@ export default {
                 display block 
                 width 40px
                 height 40px
-                background #EBEBEB
+                background var(--surface-2)
                 border-radius 20px
         .text
             p 
