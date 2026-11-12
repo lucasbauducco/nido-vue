@@ -16,6 +16,11 @@ export default createStore({
     },
     setUsername(state, username){
       state.username = username
+    },
+    logout(state){
+      state.token = null
+      state.id = null
+      state.username = null
     }
   },
   getters:{

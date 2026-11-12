@@ -20,7 +20,7 @@
             })
         },methods:{
             logout(){
-                this.$store.commit('setToken', null)
+                this.$store.commit('logout')
                 this.$router.push('/login')
             }
         }

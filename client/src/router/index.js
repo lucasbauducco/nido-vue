@@ -43,7 +43,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const protectedRoutes = ["/profile, /upload"]
+  const protectedRoutes = ["/profile", "/upload"]
   if(protectedRoutes.includes(to.path) && !store.getters.token)
     next('/login')
   else

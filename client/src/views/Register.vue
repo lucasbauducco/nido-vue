@@ -82,6 +82,8 @@ export default {
                 password: this.password,
                 username: this.username
             }).then(result => {
+                if(result.data.error)
+                    alert(result.data.error)
                 if(result.data.token){
                     this.$store.commit('setToken', result.data.token)
                     this.$store.commit('setId', result.data.id)

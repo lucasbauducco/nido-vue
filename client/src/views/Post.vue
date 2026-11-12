@@ -2,7 +2,7 @@
   <div class="overlay" @click="close">
     <div class="modal" @click.stop="">
         <figure>
-            <img :src="'http://192.168.2.201:4000/' + post.source" :alt="post.title" >
+            <img :src="assetUrl(post.source)" :alt="post.title" >
         </figure>
         <div class="content">
             <div class="top">
@@ -66,7 +66,7 @@
 </template>
 
 <script>
-    import api from '@/api.js';
+    import api, { assetUrl } from '@/api.js';
 export default {
     props:["id"],
     data() {
@@ -100,11 +100,14 @@ export default {
         }).then(comments => {
             this.comments = comments.data
         })
-        api.get(`/posts/likes/${this.$store.getters.loggedId}`).then(response => {
-            this.postLikes = response.data
-      })
+        if(this.$store.getters.token){
+            api.get('/posts/likes').then(response => {
+                this.postLikes = response.data
+            })
+        }
     },
     methods:{
+        assetUrl,
         close(){
            this.$router.push('/')
         },
@@ -112,7 +115,7 @@ export default {
             if(this.postLikes.includes(post.post_id)){
                 return
             }
-            api.post(`/posts/like/${post.post_id}/${this.$store.getters.loggedId}`).then(response => {
+            api.post(`/posts/like/${post.post_id}`).then(response => {
                 if(response.data.ok){
                 post.likes++
                 this.postLikes.push(post.post_id)
@@ -123,7 +126,6 @@ export default {
             api.post(`/posts/${this.comment.postId}/comments`, this.comment).then(response => {
                 if(response.data.ok){
                     const newC = Object.assign({}, this.comment)
-                    console.log(newC)
                     this.comments.push(newC)
                     this.comment.comment= ""
                 }

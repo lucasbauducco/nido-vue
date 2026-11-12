@@ -6,7 +6,7 @@
       </article>
       <div class="grid">
         <figure v-for="post in posts" :key="post.post_id" @dblclick="likePost(post)" @click="navigatePost(post)">
-          <img :src="'http://192.168.2.201:4000/' + post.source" :alt="posts.title">
+          <img :src="assetUrl(post.source)" :alt="post.title">
           <figcaption>
             <ul>
               <li v-if="postLikes.includes(post.post_id)"> 
@@ -31,29 +31,35 @@
 </template>
 
 <script>
-import api from "@/api.js"
+import api, { assetUrl } from "@/api.js"
 export default {
     data(){
       return{
         posts: [],
-        postLikes: [],
-        baseUrl: 'http://192.168.2.201:4000/'
+        postLikes: []
       }
     },
     created(){
       api.get('/posts').then(response => {
         this.posts = response.data
       })
-      api.get(`/posts/likes/${this.$store.getters.loggedId}`).then(response => {
-        this.postLikes = response.data
-      })
+      if(this.$store.getters.token){
+        api.get('/posts/likes').then(response => {
+          this.postLikes = response.data
+        })
+      }
   },
   methods: {
+    assetUrl,
     likePost(post) {
+      if(!this.$store.getters.token){
+        this.$router.push('/login')
+        return
+      }
       if(this.postLikes.includes(post.post_id)){
         return
       }
-      api.post(`/posts/like/${post.post_id}/${this.$store.getters.loggedId}`).then(response => {
+      api.post(`/posts/like/${post.post_id}`).then(response => {
         if(response.data.ok){
           post.likes++
           this.postLikes.push(post.post_id)

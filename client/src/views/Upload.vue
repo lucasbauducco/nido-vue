@@ -25,7 +25,6 @@
 <script>
     import ImageUpload from '@/components/ImageUpload.vue'
     import api from '@/api.js'
-import { constants } from 'buffer'
 export default {
     data() {
         return {

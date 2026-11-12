@@ -22,3 +22,4 @@
 /client/*.sln
 /client/*.sw?
 /server/node_modules
+/client/.env
