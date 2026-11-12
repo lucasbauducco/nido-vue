@@ -8,6 +8,7 @@ const mysql = require('mysql')
 const {
     JWT_SECRET,
     DB_HOST = 'localhost',
+    DB_PORT = 3306,
     DB_USER,
     DB_PASSWORD = '',
     DB_NAME = 'nido',
@@ -29,6 +30,7 @@ app.use(express.static('public')) // carpeta publica (imagenes subidas)
 const connection = mysql.createPool({
     connectionLimit: 10,
     host: DB_HOST,
+    port: Number(DB_PORT),
     user: DB_USER,
     password: DB_PASSWORD,
     database: DB_NAME

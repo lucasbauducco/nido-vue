@@ -23,3 +23,8 @@
 /client/*.sw?
 /server/node_modules
 /client/.env
+
+# imagenes subidas durante el uso (las de ejemplo ya versionadas siguen igual)
+server/public/uploads/*
+!server/public/uploads/06aaaf3997f27b5d3e49de6f9120c948
+!server/public/uploads/2246bff7676d3468b9c28fed02157c0e
