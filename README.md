@@ -339,6 +339,18 @@ Lo que sigue:
 - [ ] Comunidades ("nidos")
 - [ ] Publicación en línea con datos de ejemplo
 
+## Licencia
+
+Nido se distribuye bajo la [PolyForm Noncommercial License 1.0.0](LICENSE). Es un proyecto de código disponible, no de código abierto:
+
+- **Podés** ver el código, aprender de él, probarlo y usarlo para proyectos personales, educativos, de investigación o en organizaciones sin fines de lucro.
+- **No podés** usarlo con fines comerciales (venderlo, ofrecerlo como servicio, o usarlo dentro de un producto o empresa con fines de lucro) sin permiso.
+- **Tenés que** conservar el aviso de autoría (`Required Notice`) del archivo [LICENSE](LICENSE) en cualquier copia.
+
+¿Querés usarlo comercialmente? Escribime por [GitHub](https://github.com/lucasbauducco) y lo conversamos.
+
+Las dependencias y las tipografías mantienen sus propias licencias.
+
 ## Notas
 
 - Este es un proyecto personal y educativo. No es un producto de ninguna otra red social.

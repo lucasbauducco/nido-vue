@@ -8,8 +8,8 @@
     "start": "node index.js",
     "seed": "node scripts/seed.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Lucas Bauducco",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {
     "bcrypt": "^5.0.1",
     "cors": "^2.8.5",

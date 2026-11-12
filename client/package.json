@@ -29,5 +29,7 @@
     "last 2 versions",
     "not dead",
     "not ie 11"
-  ]
+  ],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Lucas Bauducco"
 }
