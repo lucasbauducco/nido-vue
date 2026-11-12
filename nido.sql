@@ -31,7 +31,8 @@ CREATE TABLE `comments` (
   `comment_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `post_id` int(11) NOT NULL,
-  `comment` varchar(255) NOT NULL
+  `comment` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -42,13 +43,15 @@ CREATE TABLE `comments` (
 
 CREATE TABLE `post` (
   `post_id` int(11) NOT NULL,
-  `title` varchar(255) NOT NULL,
+  `title` varchar(255) NOT NULL DEFAULT '',
   `tags` varchar(255) DEFAULT NULL,
   `description` text NOT NULL,
-  `source` longtext NOT NULL,
+  `source` longtext DEFAULT NULL,
   `likes` int(11) NOT NULL DEFAULT 0,
   `type` varchar(10) NOT NULL,
-  `user_id` int(11) NOT NULL
+  `kind` varchar(10) NOT NULL DEFAULT 'image',
+  `user_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -69,7 +72,10 @@ CREATE TABLE `users` (
   `user_id` int(11) NOT NULL,
   `username` varchar(255) DEFAULT NULL,
   `email` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL
+  `password` varchar(255) NOT NULL,
+  `bio` varchar(160) NOT NULL DEFAULT '',
+  `avatar` varchar(255) DEFAULT NULL,
+  `is_private` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -108,20 +114,23 @@ ALTER TABLE `comments`
 --
 ALTER TABLE `post`
   ADD PRIMARY KEY (`post_id`,`user_id`) USING BTREE,
-  ADD KEY `user_id` (`user_id`);
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `created_at` (`created_at`);
 
 --
 -- Indices de la tabla `users`
 --
 ALTER TABLE `users`
-  ADD PRIMARY KEY (`user_id`);
+  ADD PRIMARY KEY (`user_id`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD UNIQUE KEY `username` (`username`);
 
 --
 -- Indices de la tabla `user_likes`
 --
 ALTER TABLE `user_likes`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
+  ADD UNIQUE KEY `user_post` (`user_id`,`post_id`),
   ADD KEY `post_id` (`post_id`);
 
 --
@@ -175,6 +184,37 @@ ALTER TABLE `post`
 ALTER TABLE `user_likes`
   ADD CONSTRAINT `user_likes_ibfk_1` FOREIGN KEY (`post_id`) REFERENCES `post` (`post_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `user_likes_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Estructura de tabla para la tabla `follows`
+--
+
+CREATE TABLE `follows` (
+  `follower_id` int(11) NOT NULL,
+  `followed_id` int(11) NOT NULL,
+  `status` varchar(10) NOT NULL DEFAULT 'accepted',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`follower_id`,`followed_id`),
+  KEY `followed_id` (`followed_id`),
+  CONSTRAINT `follows_ibfk_1` FOREIGN KEY (`follower_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `follows_ibfk_2` FOREIGN KEY (`followed_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Estructura de tabla para la tabla `stories` (historias que duran 24 horas)
+--
+
+CREATE TABLE `stories` (
+  `story_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `source` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`story_id`),
+  KEY `user_id` (`user_id`),
+  KEY `created_at` (`created_at`),
+  CONSTRAINT `stories_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

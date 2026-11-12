@@ -1,10 +1,11 @@
 /*
  * Carga datos de demostracion en Nido usando la API publica del servidor:
- * crea usuarios, publica imagenes generadas al azar, da me gusta y comenta.
+ * crea usuarios con biografia, publica fotos y textos, arma seguidores, sube historias,
+ * da me gusta y comenta.
  *
  * Uso (con el servidor corriendo):
  *   npm run seed
- *   API_URL=http://localhost:4000 POSTS=18 npm run seed
+ *   API_URL=http://localhost:4000 POSTS=18 TEXTS=12 STORIES=8 npm run seed
  *
  * Las imagenes son paisajes ilustrados con la paleta de Nido, generados en el momento.
  */
@@ -12,13 +13,28 @@ const sharp = require('sharp')
 
 const API = (process.env.API_URL || 'http://localhost:4000').replace(/\/$/, '') + '/api'
 const POSTS = Number(process.env.POSTS || 14)
+const TEXTS = Number(process.env.TEXTS || 10)
+const STORIES = Number(process.env.STORIES || 8)
 const PASSWORD = process.env.SEED_PASSWORD || 'nido1234'
 
 const USERS = [
-  { username: 'valeria.sierra', email: 'valeria@nido.app' },
-  { username: 'tomas.pampa', email: 'tomas@nido.app' },
-  { username: 'lucia.arroyo', email: 'lucia@nido.app' },
-  { username: 'mateo.cielo', email: 'mateo@nido.app' }
+  { username: 'valeria.sierra', email: 'valeria@nido.app', bio: 'Fotos de campo y caminos de tierra. Tandil, Buenos Aires.' },
+  { username: 'tomas.pampa', email: 'tomas@nido.app', bio: 'Mate, cielo abierto y silencio.' },
+  { username: 'lucia.arroyo', email: 'lucia@nido.app', bio: 'Persiguiendo la hora dorada.' },
+  { username: 'mateo.cielo', email: 'mateo@nido.app', bio: 'Noches de estrellas y cuentos del campo.' }
+]
+
+const TEXT_POSTS = [
+  'Hoy vi un hornero terminando su nido. Tres semanas de barro y paciencia. Hay mucho que aprender de ese pajarito. #hornero #pampa',
+  'Nada se compara con el olor a tierra mojada después de la lluvia. #campo',
+  'Consejo del día: salí media hora antes del amanecer. La luz lo cambia todo. #fotografia #amanecer',
+  'Alguien sabe de un buen camino de tierra para recorrer en bici por la zona de las sierras? #sierras',
+  'Cada foto es un nido: se arma de a poco y se comparte con quien querés. #nido',
+  'El mate sabe mejor cuando no hay apuro. #mate #pampa',
+  'Terminé de editar la serie del atardecer. Les va a gustar. #atardecer',
+  'Dato curioso: el hornero es el ave nacional argentina y siempre construye su nido mirando para el mismo lado. #hornero #argentina',
+  'Se viene fin de semana largo. Mochila lista, cámara cargada. #viaje',
+  'Hay silencios que valen más que mil fotos. #cielo'
 ]
 
 const SCENES = [
@@ -123,8 +139,8 @@ function sceneSvg(scene, w, h) {
   </svg>`
 }
 
-async function makeImage() {
-  const [w, h] = pick([[1200, 900], [900, 1200], [1100, 1100], [1280, 800], [1000, 1300]])
+async function makeImage(size) {
+  const [w, h] = size || pick([[1200, 900], [900, 1200], [1100, 1100], [1280, 800], [1000, 1300]])
   const scene = pick(SCENES)
   const jpeg = await sharp(Buffer.from(sceneSvg(scene, w, h))).jpeg({ quality: 88 }).toBuffer()
   return { jpeg, scene }
@@ -151,6 +167,11 @@ async function session(user) {
     })
   }
   if (!data.token) throw new Error(`No se pudo iniciar sesion con ${user.email}: ${data.error}`)
+  await call('/users/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: data.token },
+    body: JSON.stringify({ bio: user.bio })
+  })
   return { ...user, token: data.token, id: data.id }
 }
 
@@ -176,17 +197,48 @@ async function main() {
   }
   console.log()
 
-  const posts = await call('/posts')
+  // publicaciones de solo texto
+  for (let i = 0; i < TEXTS; i++) {
+    const author = pick(sessions)
+    await call('/posts/text', {
+      method: 'POST',
+      headers: { Authorization: author.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: TEXT_POSTS[i % TEXT_POSTS.length] })
+    })
+  }
+  console.log(`Textos: ${TEXTS}`)
+
+  // seguidores: cada persona sigue a otras dos
+  for (const s of sessions) {
+    for (const other of pickMany(sessions.filter(o => o.id !== s.id), 2)) {
+      await call(`/users/${other.id}/follow`, { method: 'POST', headers: { Authorization: s.token } })
+    }
+  }
+
+  // historias (duran 24 horas)
+  for (let i = 0; i < STORIES; i++) {
+    const author = sessions[i % sessions.length]
+    const { jpeg } = await makeImage([900, 1600])
+    const form = new FormData()
+    form.set('source', new Blob([jpeg], { type: 'image/jpeg' }), 'historia.jpg')
+    await call('/stories', { method: 'POST', headers: { Authorization: author.token }, body: form })
+  }
+  console.log(`Historias: ${STORIES}`)
+
+  const posts = await call('/posts?limit=100')
   posts.forEach(p => postIds.push(p.post_id))
 
   let likes = 0
   let comments = 0
   for (const s of sessions) {
-    for (const id of pickMany(postIds, Math.ceil(postIds.length * rand(0.4, 0.8)))) {
+    // el me gusta alterna, asi que solo se da en publicaciones que todavia no gustaron
+    const already = await call('/posts/likes', { headers: { Authorization: s.token } })
+    const candidates = postIds.filter(id => !already.includes(id))
+    for (const id of pickMany(candidates, Math.ceil(candidates.length * rand(0.3, 0.6)))) {
       const r = await call(`/posts/like/${id}`, { method: 'POST', headers: { Authorization: s.token } })
-      if (r.ok) likes++
+      if (r.liked) likes++
     }
-    for (const id of pickMany(postIds, Math.ceil(postIds.length * 0.35))) {
+    for (const id of pickMany(postIds, Math.ceil(postIds.length * 0.3))) {
       await call(`/posts/${id}/comments`, {
         method: 'POST',
         headers: { Authorization: s.token, 'Content-Type': 'application/json' },
