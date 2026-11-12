@@ -1,5 +1,5 @@
 <template>
-  <div class="drop" :class="{ over, filled: !!image }">
+  <div class="drop" :class="{ over, filled: !!image }" :style="{ '--ratio': ratio }">
     <input id="imageFile" ref="file" type="file" accept="image/*" @change="selectFile">
     <label
       for="imageFile"
@@ -24,6 +24,9 @@ import Icon from '@/components/Icon.vue'
 
 export default {
   components: { Icon },
+  props: {
+    ratio: { type: String, default: '1' }
+  },
   data() {
     return {
       image: '',
@@ -63,7 +66,7 @@ export default {
 input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 label {
   display: flex; align-items: center; justify-content: center;
-  aspect-ratio: 1; width: 100%; border-radius: 18px; overflow: hidden; cursor: pointer;
+  aspect-ratio: var(--ratio); width: 100%; border-radius: 18px; overflow: hidden; cursor: pointer;
   border: 2px dashed var(--line); background: var(--surface); transition: border-color 120ms, background 120ms;
 }
 label:hover, .over label { border-color: var(--accent); background: var(--tint); }
