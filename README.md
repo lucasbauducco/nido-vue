@@ -347,7 +347,10 @@ Nido se distribuye bajo la [PolyForm Noncommercial License 1.0.0](LICENSE). Es u
 - **No podés** usarlo con fines comerciales (venderlo, ofrecerlo como servicio, o usarlo dentro de un producto o empresa con fines de lucro) sin permiso.
 - **Tenés que** conservar el aviso de autoría (`Required Notice`) del archivo [LICENSE](LICENSE) en cualquier copia.
 
-¿Querés usarlo comercialmente? Escribime por [GitHub](https://github.com/lucasbauducco) y lo conversamos.
+¿Querés usarlo comercialmente? Escribime y lo conversamos:
+
+- GitHub: [@lucasbauducco](https://github.com/lucasbauducco)
+- Email: lucasbauducco@gmail.com
 
 Las dependencias y las tipografías mantienen sus propias licencias.
 
