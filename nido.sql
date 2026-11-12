@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de datos: `instaclone`
+-- Base de datos: `nido`
 --
 
 -- --------------------------------------------------------
@@ -77,7 +77,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `email`, `password`) VALUES
-(35, 'Lucas Bauducco', 'lucasbauducco@hotmail.com', '$2b$10$sx3fXpZMSdtFiWSQz8LUtOd2QZ427On1Ye65xJxmeTlfOqnw638jC');
+(35, 'demo', 'demo@nido.app', '$2b$10$jx6gNGOJQaH6NrqPqXWg9uq6EHv1IPm7pURsTddYFNiQL1rgnJCGW');
 
 -- --------------------------------------------------------
 

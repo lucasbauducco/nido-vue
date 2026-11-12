@@ -1,4 +1,4 @@
-# instagram-clone
+# nido-client
 
 ## Project setup
 ```
