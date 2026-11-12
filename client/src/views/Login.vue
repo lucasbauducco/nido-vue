@@ -54,9 +54,7 @@ export default {
           return
         }
         if (result.data.token) {
-          this.$store.commit('setToken', result.data.token)
-          this.$store.commit('setId', result.data.id)
-          this.$store.commit('setUsername', result.data.username)
+          this.$store.dispatch('login', result.data)
           this.$router.push('/')
         }
       }).catch(() => {

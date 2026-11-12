@@ -5,7 +5,8 @@
 
       <div class="field">
         <label for="username">Nombre de usuario</label>
-        <input id="username" v-model="username" class="input" type="text" autocomplete="username" required placeholder="valeria.sierra">
+        <input id="username" v-model="username" class="input" type="text" autocomplete="username" required placeholder="valeria.sierra" maxlength="30">
+        <small>Entre 3 y 30 caracteres: letras, números, puntos o guiones bajos.</small>
       </div>
       <div class="field">
         <label for="email">Email</label>
@@ -53,6 +54,10 @@ export default {
         this.error = 'Completá todos los campos.'
         return
       }
+      if (!/^[A-Za-z0-9._]{3,30}$/.test(this.username.trim())) {
+        this.error = 'El nombre de usuario debe tener entre 3 y 30 caracteres: letras, números, puntos o guiones bajos.'
+        return
+      }
       if (this.password.length < 6) {
         this.error = 'La contraseña debe tener al menos 6 caracteres.'
         return
@@ -73,9 +78,7 @@ export default {
           return
         }
         if (result.data.token) {
-          this.$store.commit('setToken', result.data.token)
-          this.$store.commit('setId', result.data.id)
-          this.$store.commit('setUsername', result.data.username)
+          this.$store.dispatch('login', result.data)
           this.$router.push('/')
         }
       }).catch(() => {
@@ -87,3 +90,7 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+small { color: var(--muted); font-size: 15px; }
+</style>

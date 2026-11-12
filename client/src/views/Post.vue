@@ -1,26 +1,33 @@
 <template>
   <div class="overlay" @click="close">
-    <div class="modal" role="dialog" aria-modal="true" :aria-label="post.title || 'Publicación'" @click.stop>
-      <figure class="photo">
-        <img v-if="post.source" :src="assetUrl(post.source)" :alt="post.title">
+    <div class="modal" :class="{ text: post.kind === 'text' }" role="dialog" aria-modal="true" :aria-label="post.title || 'Publicación'" @click.stop>
+      <figure v-if="post.kind === 'image'" class="photo" @dblclick="toggleLike">
+        <img v-if="post.source" :src="assetUrl(post.source)" :alt="post.title || `Foto de ${post.username}`" draggable="false">
+        <span v-if="burst" class="burst" aria-hidden="true"><Icon name="nest" :size="110" filled /></span>
       </figure>
 
       <div class="panel">
         <header class="panel-top">
-          <div class="who">
-            <Avatar :name="user.username" :size="38" />
-            <strong>{{ user.username }}</strong>
-          </div>
+          <router-link :to="`/u/${post.user_id}`" class="who" @click="close">
+            <Avatar :name="post.username" :src="post.avatar" :size="38" />
+            <strong>{{ post.username }}</strong>
+          </router-link>
+          <span class="when">{{ timeAgo(post.created_at) }}</span>
           <button class="icon-close" type="button" aria-label="Cerrar" @click="close">
             <Icon name="close" />
           </button>
         </header>
 
         <div class="scroll">
-          <section class="caption">
-            <h1>{{ post.title }}</h1>
-            <p v-if="post.description">{{ post.description }}</p>
-            <ul v-if="tags.length" class="tags">
+          <section class="caption" @dblclick="post.kind === 'text' && toggleLike()">
+            <h1 v-if="post.title">{{ post.title }}</h1>
+            <p v-if="post.description" :class="{ tweet: post.kind === 'text' }">
+              <template v-for="(part, i) in parts" :key="i">
+                <span v-if="part.tag" class="hashtag">{{ part.text }}</span>
+                <template v-else>{{ part.text }}</template>
+              </template>
+            </p>
+            <ul v-if="post.kind === 'image' && tags.length" class="tags">
               <li v-for="t in tags" :key="t">#{{ t }}</li>
             </ul>
           </section>
@@ -29,22 +36,26 @@
             <h2>Comentarios</h2>
             <p v-if="!comments.length" class="empty">Todavía no hay comentarios. Escribí el primero.</p>
             <div v-for="(c, i) in comments" :key="c.comment_id || 'nuevo-' + i" class="comment">
-              <Avatar :name="c.username" :size="30" />
-              <p><strong>{{ c.username }}</strong> {{ c.comment }}</p>
+              <router-link :to="`/u/${c.user_id}`" @click="close"><Avatar :name="c.username" :src="c.avatar" :size="30" /></router-link>
+              <p>
+                <router-link :to="`/u/${c.user_id}`" class="cname" @click="close">{{ c.username }}</router-link>
+                {{ c.comment }}
+                <span v-if="c.created_at" class="ctime">{{ timeAgo(c.created_at) }}</span>
+              </p>
             </div>
           </section>
         </div>
 
         <footer class="panel-foot">
-          <button class="like" :class="{ liked }" type="button" @click="likePost">
+          <button class="like" :class="{ liked }" type="button" :aria-pressed="liked" @click="toggleLike">
             <Icon name="nest" :size="22" :filled="liked" />
-            <span>{{ post.likes }} {{ post.likes === 1 ? 'hornero' : 'horneros' }}</span>
+            <span>{{ likes }} {{ likes === 1 ? 'hornero' : 'horneros' }}</span>
           </button>
           <form v-if="logged" class="comment-form" @submit.prevent="newComment">
-            <input class="input" type="text" placeholder="Escribí un comentario" aria-label="Comentario" v-model="comment.comment">
+            <input class="input" type="text" placeholder="Escribí un comentario" aria-label="Comentario" maxlength="255" v-model="comment.comment">
             <button class="btn btn-primary" type="submit" :disabled="!comment.comment.trim()">Publicar</button>
           </form>
-          <p v-else class="login-hint"><router-link to="/login">Ingresá</router-link> para dar me gusta y comentar.</p>
+          <p v-else class="login-hint"><router-link to="/login">Ingresá</router-link> para dar horneros y comentar.</p>
         </footer>
       </div>
     </div>
@@ -55,22 +66,18 @@
 import api, { assetUrl } from '@/api.js'
 import Icon from '@/components/Icon.vue'
 import Avatar from '@/components/Avatar.vue'
+import { timeAgo } from '@/lib/time'
+import { closePost } from '@/lib/modal'
 
 export default {
   components: { Icon, Avatar },
   props: ['id'],
   data() {
     return {
-      postLikes: [],
       post: {},
-      user: {},
       comments: [],
-      comment: {
-        userId: null,
-        postId: null,
-        username: null,
-        comment: ''
-      }
+      burst: false,
+      comment: { comment: '' }
     }
   },
   computed: {
@@ -78,35 +85,28 @@ export default {
       return !!this.$store.getters.token
     },
     liked() {
-      return this.postLikes.includes(this.post.post_id)
+      return this.$store.getters.isLiked(this.post.post_id)
+    },
+    likes() {
+      return this.post.post_id ? this.$store.getters.likesOf(this.post) : 0
     },
     tags() {
       return (this.post.tags || '').split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean)
+    },
+    parts() {
+      return (this.post.description || '').split(/(#[\p{L}\p{N}_]+)/u).filter(Boolean).map(text => ({ text, tag: this.post.kind === 'text' && text.startsWith('#') && text.length > 1 }))
     }
   },
   created() {
-    this.comment.userId = this.$store.getters.loggedId
-    this.comment.postId = this.id
-    this.comment.username = this.$store.getters.username
-
-    // traemos el post, despues su autor y sus comentarios
     api.get(`/posts/${this.id}`).then(response => {
       this.post = response.data
-      return api.get(`/users/${this.post.user_id}`)
-    }).then(user => {
-      this.user = user.data
       return api.get(`/posts/${this.id}/comments`)
     }).then(comments => {
       this.comments = comments.data
     }).catch(() => {
+      // no existe o es de una cuenta privada que no seguis
       this.close()
     })
-
-    if (this.logged) {
-      api.get('/posts/likes').then(response => {
-        this.postLikes = response.data
-      })
-    }
   },
   mounted() {
     document.body.style.overflow = 'hidden'
@@ -118,30 +118,38 @@ export default {
   },
   methods: {
     assetUrl,
+    timeAgo,
     onKey(e) {
       if (e.key === 'Escape') this.close()
     },
     close() {
-      this.$router.push('/')
+      closePost(this.$router, this.$route)
     },
-    likePost() {
+    // un toque o doble clic: da el hornero, y otro lo saca
+    toggleLike() {
       if (!this.logged) {
+        this.close()
         this.$router.push('/login')
         return
       }
-      if (this.liked) return
-
-      api.post(`/posts/like/${this.post.post_id}`).then(response => {
-        if (response.data.ok) {
-          this.post.likes++
-          this.postLikes.push(this.post.post_id)
+      this.$store.dispatch('toggleLike', this.post.post_id).then(data => {
+        if (data && data.liked && this.post.kind === 'image') {
+          this.burst = true
+          setTimeout(() => { this.burst = false }, 700)
         }
       })
     },
     newComment() {
-      api.post(`/posts/${this.comment.postId}/comments`, this.comment).then(response => {
+      api.post(`/posts/${this.post.post_id}/comments`, { comment: this.comment.comment }).then(response => {
         if (response.data.ok) {
-          this.comments.push(Object.assign({}, this.comment))
+          this.comments.push({
+            user_id: this.$store.getters.loggedId,
+            username: this.$store.getters.username,
+            avatar: this.$store.getters.avatar,
+            comment: this.comment.comment.trim(),
+            created_at: new Date().toISOString()
+          })
+          this.post.comment_count = (this.post.comment_count || 0) + 1
           this.comment.comment = ''
         }
       })
@@ -161,18 +169,25 @@ export default {
   background: var(--surface); color: var(--ink); border-radius: 20px; overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
 }
-.photo { margin: 0; background: #0d0b0a; display: flex; align-items: center; justify-content: center; min-width: 0; }
+.modal.text { grid-template-columns: minmax(0, 1fr); max-width: 560px; height: min(80vh, 640px); }
+.photo { position: relative; margin: 0; background: #0d0b0a; display: flex; align-items: center; justify-content: center; min-width: 0; user-select: none; }
 .photo img { width: 100%; height: 100%; object-fit: contain; }
+.burst { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; pointer-events: none; animation: pop 700ms ease-out forwards; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.4)); }
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 25% { transform: scale(1.15); opacity: 1; } 60% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.05); opacity: 0; } }
 
 .panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
-.panel-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
-.who { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); }
+.panel-top { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.who { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); color: var(--ink); }
+.who:hover { text-decoration: none; opacity: 0.85; }
+.when { color: var(--muted); font-size: 15px; margin-right: auto; }
 .icon-close { display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border: none; border-radius: 10px; background: transparent; color: var(--muted); }
 .icon-close:hover { background: var(--surface-2); color: var(--ink); }
 
 .scroll { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 24px; }
 .caption { display: flex; flex-direction: column; gap: 10px; }
 .caption h1 { font-size: 24px; }
+.tweet { font-size: 22px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hashtag { color: var(--cielo); font-weight: 500; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px 10px; list-style: none; margin: 0; padding: 0; }
 .tags li { color: var(--cielo); font-weight: 500; font-size: 16px; }
 
@@ -180,7 +195,9 @@ export default {
 .comments h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
 .comment { display: flex; gap: 10px; align-items: flex-start; }
 .comment p { padding-top: 3px; overflow-wrap: anywhere; }
-.comment strong { font-weight: 700; margin-right: 4px; }
+.cname { font-weight: 700; color: var(--ink); margin-right: 4px; }
+.cname:hover { text-decoration: none; opacity: 0.8; }
+.ctime { color: var(--muted); font-size: 14px; margin-left: 6px; }
 .empty { color: var(--muted); }
 
 .panel-foot { padding: 12px 18px 16px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
@@ -195,5 +212,7 @@ export default {
 @media (max-width: 720px) {
   .overlay { padding: 0; align-items: stretch; }
   .modal { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 36vh) minmax(0, 1fr); height: 100%; max-width: none; border-radius: 0; }
+  .modal.text { grid-template-rows: minmax(0, 1fr); }
 }
+@media (prefers-reduced-motion: reduce) { .burst { animation-duration: 1ms; } }
 </style>
