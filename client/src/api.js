@@ -16,6 +16,18 @@ api.interceptors.request.use(config => {
   return config
 })
 
+// si el token vencio o es invalido, cerramos la sesion y vamos al login
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.status === 401 && store.getters.token) {
+      store.commit('logout')
+      import('@/router').then(m => m.default.push('/login'))
+    }
+    return Promise.reject(error)
+  }
+)
+
 // URL completa de una imagen subida al servidor
 export const assetUrl = path => `${SERVER_URL}/${path}`
 

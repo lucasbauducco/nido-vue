@@ -1,89 +1,78 @@
 <template>
-    <div>
-        <input id="imageFile" type="file" @change="selectFile($event)"/>
-        <label for="imageFile" @dragenter.stop.prevent="" @dragover.stop.prevent="" @drop="loadImage($event)">
-            <h2 v-if="!image">Arrastra aquí imagen <br> para seleccionarla </h2>
-            <svg xmlns="http://www.w3.org/2000/svg" width="64px" viewBox="0 0 640 512"><!--! Font Awesome Pro 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path d="M144 480C64.5 480 0 415.5 0 336c0-62.8 40.2-116.2 96.2-135.9c-.1-2.7-.2-5.4-.2-8.1c0-88.4 71.6-160 160-160c59.3 0 111 32.2 138.7 80.2C409.9 102 428.3 96 448 96c53 0 96 43 96 96c0 12.2-2.3 23.8-6.4 34.6C596 238.4 640 290.1 640 352c0 70.7-57.3 128-128 128H144zm79-217c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l39-39V392c0 13.3 10.7 24 24 24s24-10.7 24-24V257.9l39 39c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-80-80c-9.4-9.4-24.6-9.4-33.9 0l-80 80z"/></svg>
-        </label>
-        <img v-if="image" :src="image"/>
-    </div>
+  <div class="drop" :class="{ over, filled: !!image }">
+    <input id="imageFile" ref="file" type="file" accept="image/*" @change="selectFile">
+    <label
+      for="imageFile"
+      @dragenter.stop.prevent="over = true"
+      @dragover.stop.prevent="over = true"
+      @dragleave.stop.prevent="over = false"
+      @drop="loadImage"
+    >
+      <img v-if="image" :src="image" alt="Vista previa de la imagen elegida">
+      <span v-else class="hint">
+        <Icon name="upload" :size="40" />
+        <strong>Arrastrá una imagen o hacé clic</strong>
+        <small>JPG, PNG o WebP</small>
+      </span>
+    </label>
+    <button v-if="image" class="remove" type="button" @click="clear">Quitar imagen</button>
+  </div>
 </template>
 
 <script>
+import Icon from '@/components/Icon.vue'
 
 export default {
-    data(){
-        return{
-            image: ""
-        }
-    },
-    mounted(){
-        const width = this.$el.clientWidth
-        this.$el.style.height = width + "px"
-    },
-    methods: {
-        loadImage(e){
-            e.stopPropagation()
-            e.preventDefault()
-
-            const transfer = e.dataTransfer
-            const files = transfer.files  
-            const image = files[0]
-
-            const reader = new FileReader()
-
-            reader.addEventListener("load", () => {
-                this.image = reader.result
-                this.$emit("selected", image)
-            })
-            if(image){
-                reader.readAsDataURL(image)
-            }
-        },
-        selectFile(e){
-            const reader = new FileReader()
-
-            reader.addEventListener("load", () => {
-                this.image = reader.result
-            })
-            if(e.target.files){
-                reader.readAsDataURL(e.target.files[0])
-                this.$emit("selected", e.target.files[0])
-
-            }
-        }
+  components: { Icon },
+  data() {
+    return {
+      image: '',
+      over: false
     }
+  },
+  methods: {
+    preview(file) {
+      if (!file || !file.type.startsWith('image/')) return
+      const reader = new FileReader()
+      reader.addEventListener('load', () => {
+        this.image = reader.result
+        this.$emit('selected', file)
+      })
+      reader.readAsDataURL(file)
+    },
+    loadImage(e) {
+      e.stopPropagation()
+      e.preventDefault()
+      this.over = false
+      this.preview(e.dataTransfer.files[0])
+    },
+    selectFile(e) {
+      this.preview(e.target.files[0])
+    },
+    clear() {
+      this.image = ''
+      this.$refs.file.value = ''
+      this.$emit('selected', '')
+    }
+  }
 }
 </script>
 
-<style lang="stylus" scoped>
-div 
-    width 400px 
-    background transparent 
-    display flex
-    justify-content center
-    align-items center
-    border 2px dashed #C1C1C1
-    h2 
-        text-align center
-        color rgba(0,0,0,0.2)
-        user-select none
-    label
-        position absolute
-        display flex
-        align-items center
-        justify-content center
-        svg
-            width 200px
-            position absolute
-            z-index 0
-            opacity 0.1
-    img
-        width 100%
-        object-fit cover /* Recorta la imagen sin deformarla */
-        object-position center
-input 
-    position absolute
-    top -9999px
-    left -999px
+<style scoped>
+.drop { display: flex; flex-direction: column; gap: 10px; }
+input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+label {
+  display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 1; width: 100%; border-radius: 18px; overflow: hidden; cursor: pointer;
+  border: 2px dashed var(--line); background: var(--surface); transition: border-color 120ms, background 120ms;
+}
+label:hover, .over label { border-color: var(--accent); background: var(--tint); }
+.filled label { border-style: solid; }
+input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+label img { width: 100%; height: 100%; object-fit: cover; }
+.hint { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; color: var(--muted); padding: 20px; }
+.hint strong { color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+.hint small { font-size: 15px; }
+.remove { align-self: flex-start; border: none; background: transparent; color: var(--muted); text-decoration: underline; padding: 4px 0; }
+.remove:hover { color: var(--ink); }
 </style>

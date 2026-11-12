@@ -1,227 +1,199 @@
 <template>
   <div class="overlay" @click="close">
-    <div class="modal" @click.stop="">
-        <figure>
-            <img :src="assetUrl(post.source)" :alt="post.title" >
-        </figure>
-        <div class="content">
-            <div class="top">
-                <p>
-                    <a href="#" class="author">{{user.username}}</a>
-                    <span class="separator"> &middot; </span>
-                    <a href="#">Seguir</a>
-                </p>
-                <a href="#" class="close" @click.prevent="close">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32px" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path d="M175 175C184.4 165.7 199.6 165.7 208.1 175L255.1 222.1L303 175C312.4 165.7 327.6 165.7 336.1 175C346.3 184.4 346.3 199.6 336.1 208.1L289.9 255.1L336.1 303C346.3 312.4 346.3 327.6 336.1 336.1C327.6 346.3 312.4 346.3 303 336.1L255.1 289.9L208.1 336.1C199.6 346.3 184.4 346.3 175 336.1C165.7 327.6 165.7 312.4 175 303L222.1 255.1L175 208.1C165.7 199.6 165.7 184.4 175 175V175zM0 96C0 60.65 28.65 32 64 32H448C483.3 32 512 60.65 512 96V416C512 451.3 483.3 480 448 480H64C28.65 480 0 451.3 0 416V96zM48 96V416C48 424.8 55.16 432 64 432H448C456.8 432 464 424.8 464 416V96C464 87.16 456.8 80 448 80H64C55.16 80 48 87.16 48 96z"/></svg>
-                </a>
+    <div class="modal" role="dialog" aria-modal="true" :aria-label="post.title || 'Publicación'" @click.stop>
+      <figure class="photo">
+        <img v-if="post.source" :src="assetUrl(post.source)" :alt="post.title">
+      </figure>
+
+      <div class="panel">
+        <header class="panel-top">
+          <div class="who">
+            <Avatar :name="user.username" :size="38" />
+            <strong>{{ user.username }}</strong>
+          </div>
+          <button class="icon-close" type="button" aria-label="Cerrar" @click="close">
+            <Icon name="close" />
+          </button>
+        </header>
+
+        <div class="scroll">
+          <section class="caption">
+            <h1>{{ post.title }}</h1>
+            <p v-if="post.description">{{ post.description }}</p>
+            <ul v-if="tags.length" class="tags">
+              <li v-for="t in tags" :key="t">#{{ t }}</li>
+            </ul>
+          </section>
+
+          <section class="comments">
+            <h2>Comentarios</h2>
+            <p v-if="!comments.length" class="empty">Todavía no hay comentarios. Escribí el primero.</p>
+            <div v-for="(c, i) in comments" :key="c.comment_id || 'nuevo-' + i" class="comment">
+              <Avatar :name="c.username" :size="30" />
+              <p><strong>{{ c.username }}</strong> {{ c.comment }}</p>
             </div>
-            <div class="title">
-                <h1>{{post.title}}</h1>
-            </div>
-            <div class="comments">
-                <div class="comment">
-                    <div class="avatar">
-                        <a href="">
-                            <img src="#" alt="">
-                        </a>
-                    </div>
-                    <div class="text">
-                        <p>
-                            <a href="#">{{user.username}}</a>
-                            {{post.description}} 
-                            <a href="#">#tag1</a>
-                        </p>
-                    </div>
-                </div>
-                <div class="comment" v-for="c in comments" v-bind:key="c">
-                    <div class="avatar">
-                        <a href="">
-                            <img src="" alt="">
-                        </a>
-                    </div>
-                    <div class="text">
-                        <p>
-                            <a href="#">{{c.username}}</a>
-                                {{c.comment}} 
-                            <a href="#">#tag1</a>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="footer">
-                <div class="likes">
-                    <a href="#">
-                        <img  src="@/assets/img/hornero.svg" alt="Hornero"/> 
-                        <span>{{post.likes}} Me gusta</span>
-                    </a>
-                </div>
-                <form action="" @submit.prevent="newComment">
-                    <input type="text" placeholder="Escribe tu comentario ..." v-model="comment.comment">
-                    <input class="form-submit" type="submit" value="Publicar">
-                </form>
-            </div>
+          </section>
         </div>
+
+        <footer class="panel-foot">
+          <button class="like" :class="{ liked }" type="button" @click="likePost">
+            <Icon name="nest" :size="22" :filled="liked" />
+            <span>{{ post.likes }} {{ post.likes === 1 ? 'hornero' : 'horneros' }}</span>
+          </button>
+          <form v-if="logged" class="comment-form" @submit.prevent="newComment">
+            <input class="input" type="text" placeholder="Escribí un comentario" aria-label="Comentario" v-model="comment.comment">
+            <button class="btn btn-primary" type="submit" :disabled="!comment.comment.trim()">Publicar</button>
+          </form>
+          <p v-else class="login-hint"><router-link to="/login">Ingresá</router-link> para dar me gusta y comentar.</p>
+        </footer>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-    import api, { assetUrl } from '@/api.js';
-export default {
-    props:["id"],
-    data() {
-        return {
-            postLikes: [],
-            post: {},
-            user: {},
-            comments:[],
-            comment: {
-                userId: null,
-                postId: null,
-                username: null,
-                comment: "",
+import api, { assetUrl } from '@/api.js'
+import Icon from '@/components/Icon.vue'
+import Avatar from '@/components/Avatar.vue'
 
-            }
-        }
-    },
-    created(){
-        this.comment.userId = this.$store.getters.loggedId
-        this.comment.postId = this.id
-        this.comment.username = this.$store.getters.username
-        //traemos el post
-        api.get(`/posts/${this.id}`).then(response => {
-            this.post = response.data
-            //traemos el usuario del post
-            return api.get(`/users/${this.post.user_id}`)
-        }).then(user =>{
-            this.user = user.data
-            //regresar 
-            return api.get(`/posts/${this.id}/comments`)
-        }).then(comments => {
-            this.comments = comments.data
-        })
-        if(this.$store.getters.token){
-            api.get('/posts/likes').then(response => {
-                this.postLikes = response.data
-            })
-        }
-    },
-    methods:{
-        assetUrl,
-        close(){
-           this.$router.push('/')
-        },
-        likePost(post) {
-            if(this.postLikes.includes(post.post_id)){
-                return
-            }
-            api.post(`/posts/like/${post.post_id}`).then(response => {
-                if(response.data.ok){
-                post.likes++
-                this.postLikes.push(post.post_id)
-                }
-            })
-            },
-        newComment(){
-            api.post(`/posts/${this.comment.postId}/comments`, this.comment).then(response => {
-                if(response.data.ok){
-                    const newC = Object.assign({}, this.comment)
-                    this.comments.push(newC)
-                    this.comment.comment= ""
-                }
-                    
-            })
-        }
+export default {
+  components: { Icon, Avatar },
+  props: ['id'],
+  data() {
+    return {
+      postLikes: [],
+      post: {},
+      user: {},
+      comments: [],
+      comment: {
+        userId: null,
+        postId: null,
+        username: null,
+        comment: ''
+      }
     }
+  },
+  computed: {
+    logged() {
+      return !!this.$store.getters.token
+    },
+    liked() {
+      return this.postLikes.includes(this.post.post_id)
+    },
+    tags() {
+      return (this.post.tags || '').split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean)
+    }
+  },
+  created() {
+    this.comment.userId = this.$store.getters.loggedId
+    this.comment.postId = this.id
+    this.comment.username = this.$store.getters.username
+
+    // traemos el post, despues su autor y sus comentarios
+    api.get(`/posts/${this.id}`).then(response => {
+      this.post = response.data
+      return api.get(`/users/${this.post.user_id}`)
+    }).then(user => {
+      this.user = user.data
+      return api.get(`/posts/${this.id}/comments`)
+    }).then(comments => {
+      this.comments = comments.data
+    }).catch(() => {
+      this.close()
+    })
+
+    if (this.logged) {
+      api.get('/posts/likes').then(response => {
+        this.postLikes = response.data
+      })
+    }
+  },
+  mounted() {
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', this.onKey)
+  },
+  unmounted() {
+    document.body.style.overflow = ''
+    window.removeEventListener('keydown', this.onKey)
+  },
+  methods: {
+    assetUrl,
+    onKey(e) {
+      if (e.key === 'Escape') this.close()
+    },
+    close() {
+      this.$router.push('/')
+    },
+    likePost() {
+      if (!this.logged) {
+        this.$router.push('/login')
+        return
+      }
+      if (this.liked) return
+
+      api.post(`/posts/like/${this.post.post_id}`).then(response => {
+        if (response.data.ok) {
+          this.post.likes++
+          this.postLikes.push(this.post.post_id)
+        }
+      })
+    },
+    newComment() {
+      api.post(`/posts/${this.comment.postId}/comments`, this.comment).then(response => {
+        if (response.data.ok) {
+          this.comments.push(Object.assign({}, this.comment))
+          this.comment.comment = ''
+        }
+      })
+    }
+  }
 }
 </script>
 
-<style lang="stylus" scoped>
-    div.overlay 
-        width 100vw
-        height 100vh
-        position fixed
-        top 0
-        left 0
-        background rgba(0,0,0,0.5)
-        z-index 150
-        display flex
-        justify-content center
-        align-items center
-        div.modal 
-            background var(--surface)
-            color var(--ink)
-            width 80%
-            height 80%
-            border-radius 18px
-            box-shadow 0 0 35px 0 rgba(0,0,0,0.3)
-            display flex
-            figure 
-                margin 0
-                
-                img 
-                    object-fit fill
-                    width 100%
-                    height 100%
-                    padding 20px
-            div.content
-                width 50%
-                display flex
-                flex-direction column
-                padding 20px
-                div.top
-                    display flex
-                    justify-content space-between
-                    align-items center
-                    padding 10px 20px
-                    flex 75px 0 0
-                    border-bottom 1px solid var(--line)
-                    .close
-                        font-size 32px
-                    .separator
-                        margin 0 10px
-                    .author
-                        color var(--ink)
-                div.title
-                    flex 75px 0 0
-                    h1 
-                        padding 20px
-                        line-height 75px
-                        margin 0
-    div.comments
-        flex 1
-        overflow-y scroll
-    div.comment
-        display flex
-        padding 20px
-        margin-bottom 20px
-        .avatar
-            margin-right 20px
-            a
-                display block 
-                width 40px
-                height 40px
-                background var(--surface-2)
-                border-radius 20px
-        .text
-            p 
-                margin 0
-    div.footer 
-        padding 0 20px
-        div.likes 
-            height 50px
-            line-height 50px
-            img 
-                margin-right 10px
-            a 
-                font-weight bold
-        form 
-            display flex
-            input[type="submit"]
-                width initial
-                margin-left 20px
-                padding 10px
+<style scoped>
+.overlay {
+  position: fixed; inset: 0; z-index: 150; background: rgba(10, 8, 6, 0.6);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.modal {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr); grid-template-rows: minmax(0, 1fr);
+  width: 100%; max-width: 1080px; height: min(86vh, 720px);
+  background: var(--surface); color: var(--ink); border-radius: 20px; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+.photo { margin: 0; background: #0d0b0a; display: flex; align-items: center; justify-content: center; min-width: 0; }
+.photo img { width: 100%; height: 100%; object-fit: contain; }
 
+.panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.panel-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.who { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); }
+.icon-close { display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border: none; border-radius: 10px; background: transparent; color: var(--muted); }
+.icon-close:hover { background: var(--surface-2); color: var(--ink); }
 
-                    
-</style>>
+.scroll { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 24px; }
+.caption { display: flex; flex-direction: column; gap: 10px; }
+.caption h1 { font-size: 24px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px 10px; list-style: none; margin: 0; padding: 0; }
+.tags li { color: var(--cielo); font-weight: 500; font-size: 16px; }
+
+.comments { display: flex; flex-direction: column; gap: 14px; }
+.comments h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.comment { display: flex; gap: 10px; align-items: flex-start; }
+.comment p { padding-top: 3px; overflow-wrap: anywhere; }
+.comment strong { font-weight: 700; margin-right: 4px; }
+.empty { color: var(--muted); }
+
+.panel-foot { padding: 12px 18px 16px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.like { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; color: var(--ink); }
+.like:hover { background: var(--surface-2); }
+.like.liked { background: var(--tint); border-color: transparent; color: var(--accent); }
+.comment-form { display: flex; gap: 8px; }
+.comment-form .input { min-height: 46px; }
+.comment-form .btn { height: 46px; }
+.login-hint { color: var(--muted); }
+
+@media (max-width: 720px) {
+  .overlay { padding: 0; align-items: stretch; }
+  .modal { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 36vh) minmax(0, 1fr); height: 100%; max-width: none; border-radius: 0; }
+}
+</style>

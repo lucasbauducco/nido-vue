@@ -1,118 +1,70 @@
 <template>
-  <main>
-    <section class="full flex">
-        <div class="column image">
-            <img src="@/assets/img/banner.jpg" alt="baner">
-        </div>
-        <div class="column flex text">
-            <div class="content">
-                <h1 class="text-center">Entrar a tu <strong>galería</strong>.</h1>
-                <form v-on:submit.prevent="login">
-                    <p v-show="error">{{error}}</p>
-                    <label class="form-label" for="#email">Email:</label>
-                    <input
-                        v-model="email"
-                        class="form-input"
-                        type="email"
-                        id="email"
-                        required
-                        placeholder="E-mail"
-                    >
-                    <label class="form-label" for="#password">Password:</label>
-                    <input
-                        v-model="password"
-                        class="form-input"
-                        type="password"
-                        id="password"
-                        placeholder="********"
-                    >
-                    <input class="form-submit" type="submit" value="Login">
-                </form>
-                <p class="text-center">o también puedes</p>
-                <p class="text-center"><router-link to="/register">Crear tu cuenta</router-link></p>
-            </div>
-            <ul class="social">
-                <li><a href="#"><i class="lab la-facebook-square"></i></a></li>
-                <li><a href="#"><i class="lab la-instagram"></i></a></li>
-                <li><a href="#"><i class="lab la-patreon"></i></a></li>
-            </ul>
-        </div>
-    </section>
-  </main>
+  <AuthLayout title="Entrá a tu nido" subtitle="Ingresá con tu email y tu contraseña.">
+    <form @submit.prevent="login" novalidate>
+      <p v-if="error" class="alert" role="alert">{{ error }}</p>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" v-model="email" class="input" type="email" autocomplete="email" required placeholder="vos@ejemplo.com">
+      </div>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input id="password" v-model="password" class="input" type="password" autocomplete="current-password" required placeholder="Tu contraseña">
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit" :disabled="loading">
+        {{ loading ? 'Ingresando...' : 'Ingresar' }}
+      </button>
+    </form>
+
+    <template #alt>
+      ¿No tenés cuenta? <router-link to="/register">Creá una</router-link>
+    </template>
+  </AuthLayout>
 </template>
 
 <script>
 import api from '@/api'
-export default {
-    components:{
+import AuthLayout from '@/components/AuthLayout.vue'
 
-    },
-    data(){
-        return{
-            email:"",
-            password:"",
-            error: false
-        }
-    },
-    methods: {
-        login() {
-            api.post('/users/login', {
-                email: this.email,
-                password: this.password
-            }).then(result => {
-                if(result.data.error)
-                    this.error = result.data.error
-                if(result.data.token){
-                    this.$store.commit('setToken', result.data.token)
-                    this.$store.commit('setId', result.data.id)
-                    this.$store.commit('setUsername', result.data.username)
-                    this.$router.push('/')
-                }
-            })
-        }
+export default {
+  components: { AuthLayout },
+  data() {
+    return {
+      email: '',
+      password: '',
+      error: '',
+      loading: false
     }
+  },
+  methods: {
+    login() {
+      if (!this.email || !this.password) {
+        this.error = 'Completá el email y la contraseña.'
+        return
+      }
+      this.error = ''
+      this.loading = true
+      api.post('/users/login', {
+        email: this.email,
+        password: this.password
+      }).then(result => {
+        if (result.data.error) {
+          this.error = result.data.error
+          return
+        }
+        if (result.data.token) {
+          this.$store.commit('setToken', result.data.token)
+          this.$store.commit('setId', result.data.id)
+          this.$store.commit('setUsername', result.data.username)
+          this.$router.push('/')
+        }
+      }).catch(() => {
+        this.error = 'No pudimos conectar con el servidor. Intentá de nuevo en unos segundos.'
+      }).finally(() => {
+        this.loading = false
+      })
+    }
+  }
 }
 </script>
-
-<style lang="stylus" scoped>
-    .image
-        width 60%
-        flex-basis 60%
-        position relative
-        img 
-            width 100%
-            padding-top 10%
-            display block
-            height 100%
-            object-fit cover
-            -webkit-filter brightness(70%)
-            filter brightness(70%)
-        p 
-            position absolute
-            bottom 30px
-            left 30px
-            color white
-            font-weight 600
-
-    .text
-        align-self center
-        flex-basis 40%
-        align-items: center
-        justify-content: center
-        .content
-            width: 320px
-    ul.social
-        position absolute
-        bottom 30px
-        margin 0
-        padding 0
-        li
-            display inline-block
-            margin 0 10px
-            i
-                font-size 40px
-                font-weight 300
-    .error 
-        margin 1rem 0 0
-        color #ff4a96
-</style>

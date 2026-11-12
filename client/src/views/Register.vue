@@ -1,140 +1,89 @@
 <template>
-  <main>
-    <section class="full flex">
-        <div class="column image">
-            <img src="@/assets/img/love-life.jpg" alt="Banner person in heart drawn">
-        </div>
-        <div class="column flex text">
-            <div class="content">
-                <h1 class="text-center">Registre su <strong>galería</strong> aquí.</h1>
-                <form v-on:submit.prevent="register">
-                    <label class="form-label" for="#email">User Name:</label>
-                    <input
-                        v-model="username"
-                        class="form-input"
-                        type="text"
-                        required
-                        placeholder="User Name"
-                    >
-                    <label class="form-label" for="#email">Email:</label>
-                    <input
-                        v-model="email"
-                        class="form-input"
-                        type="email"
-                        id="email"
-                        required
-                        placeholder="E-mail"
-                    >
-                    <label class="form-label" for="#password">Password:</label>
-                    <input
-                        v-model="password"
-                        class="form-input"
-                        type="password"
-                        id="password"
-                        required
-                        placeholder="********"
-                    >
-                    <input
-                        v-model="password2"
-                        class="form-input"
-                        type="password"
-                        id="password"
-                        required
-                        placeholder="********"
-                    >
-                    <input class="form-submit" type="submit" value="Register">
-                </form>
-                <p class="text-center">ya tienes una cuenta?</p>
-                <p class="text-center"><router-link to="/">Ingresar con tu cuenta</router-link></p>
-            </div>
-            <ul class="social">
-                <li><a href="#"><i class="lab la-facebook-square"></i></a></li>
-                <li><a href="#"><i class="lab la-instagram"></i></a></li>
-                <li><a href="#"><i class="lab la-patreon"></i></a></li>
-            </ul>
-        </div>
-    </section>
-  </main>
+  <AuthLayout title="Creá tu nido" subtitle="Registrate para publicar fotos y compartirlas.">
+    <form @submit.prevent="register" novalidate>
+      <p v-if="error" class="alert" role="alert">{{ error }}</p>
+
+      <div class="field">
+        <label for="username">Nombre de usuario</label>
+        <input id="username" v-model="username" class="input" type="text" autocomplete="username" required placeholder="valeria.sierra">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" v-model="email" class="input" type="email" autocomplete="email" required placeholder="vos@ejemplo.com">
+      </div>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input id="password" v-model="password" class="input" type="password" autocomplete="new-password" required placeholder="Al menos 6 caracteres">
+      </div>
+      <div class="field">
+        <label for="password2">Repetí la contraseña</label>
+        <input id="password2" v-model="password2" class="input" type="password" autocomplete="new-password" required placeholder="Repetí la contraseña">
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit" :disabled="loading">
+        {{ loading ? 'Creando cuenta...' : 'Crear cuenta' }}
+      </button>
+    </form>
+
+    <template #alt>
+      ¿Ya tenés cuenta? <router-link to="/login">Ingresá</router-link>
+    </template>
+  </AuthLayout>
 </template>
 
 <script>
 import api from '@/api'
-export default {
-    components:{
+import AuthLayout from '@/components/AuthLayout.vue'
 
-    },
-    data(){
-        return{
-            email:"",
-            username: "",
-            password:"",
-            password2:""
-        }
-    },
-    methods: {
-        register() {
-            if (this.password != this.password2) {
-                alert("Las contraseñas no son iguales")
-                return 
-            }
-            api.post('/users/register', {
-                email: this.email,
-                password: this.password,
-                username: this.username
-            }).then(result => {
-                if(result.data.error)
-                    alert(result.data.error)
-                if(result.data.token){
-                    this.$store.commit('setToken', result.data.token)
-                    this.$store.commit('setId', result.data.id)
-                    this.$store.commit('setUsername', result.data.username)
-                    this.$router.push('/');
-                }
-            })
-        }
+export default {
+  components: { AuthLayout },
+  data() {
+    return {
+      email: '',
+      username: '',
+      password: '',
+      password2: '',
+      error: '',
+      loading: false
     }
+  },
+  methods: {
+    register() {
+      if (!this.username.trim() || !this.email.trim() || !this.password) {
+        this.error = 'Completá todos los campos.'
+        return
+      }
+      if (this.password.length < 6) {
+        this.error = 'La contraseña debe tener al menos 6 caracteres.'
+        return
+      }
+      if (this.password !== this.password2) {
+        this.error = 'Las contraseñas no son iguales.'
+        return
+      }
+      this.error = ''
+      this.loading = true
+      api.post('/users/register', {
+        email: this.email.trim(),
+        password: this.password,
+        username: this.username.trim()
+      }).then(result => {
+        if (result.data.error) {
+          this.error = result.data.error
+          return
+        }
+        if (result.data.token) {
+          this.$store.commit('setToken', result.data.token)
+          this.$store.commit('setId', result.data.id)
+          this.$store.commit('setUsername', result.data.username)
+          this.$router.push('/')
+        }
+      }).catch(() => {
+        this.error = 'No pudimos conectar con el servidor. Intentá de nuevo en unos segundos.'
+      }).finally(() => {
+        this.loading = false
+      })
+    }
+  }
 }
 </script>
-
-<style lang="stylus" scoped>
-    .image
-        width 50%
-        flex-basis 60%
-        position relative
-        img 
-            width 100%
-            padding-top 10%
-            display block
-            height 100%
-            object-fit cover
-            -webkit-filter brightness(70%)
-            filter brightness(70%)
-        p 
-            position absolute
-            bottom 30px
-            left 30px
-            color white
-            font-weight 600
-
-    .text
-        align-self center
-        flex-basis 40%
-        align-items: center
-        justify-content: center
-        .content
-            width: 320px
-    ul.social
-        position absolute
-        bottom 30px
-        margin 0
-        padding 0
-        li
-            display inline-block
-            margin 0 10px
-            i
-                font-size 40px
-                font-weight 300
-    .error 
-        margin 1rem 0 0
-        color #ff4a96
-</style>
